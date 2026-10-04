@@ -1,0 +1,61 @@
+---
+import Faq from "@/components/Faq.astro";
+import Promo from "@/components/Promo.astro";
+import Layout from "@/layouts/Layout.astro";
+
+const faq = [
+  { q: "Comment est calculé le versement mensuel ?", a: "On cherche le versement constant qui, ajouté chaque mois et capitalisé au rendement choisi, porte ton capital de départ jusqu'à l'objectif à la date voulue. Le calcul suppose un rendement régulier, ce qui n'arrive jamais exactement en bourse." },
+  { q: "Que faire si le versement est trop élevé ?", a: "Allonger la durée est souvent le levier le plus puissant grâce aux intérêts composés. Tu peux aussi viser un objectif intermédiaire ou augmenter ton capital de départ." },
+  { q: "Faut-il tenir compte de l'inflation ?", a: "Oui : 100 000 € dans 20 ans n'auront pas le pouvoir d'achat de 100 000 € aujourd'hui. Pour raisonner en euros d'aujourd'hui, retire environ 2 points d'inflation au rendement espéré." },
+];
+---
+
+<Layout title="Combien épargner par mois pour atteindre ton objectif ?" current="objectif-epargne" description="Calcule le versement mensuel nécessaire pour atteindre ton objectif d'épargne à une date donnée, intérêts composés compris." faq={faq}>
+  <h1>Combien épargner par mois ?</h1>
+  <p class="lead">Fixe un montant et une échéance : le simulateur calcule l'effort mensuel nécessaire, intérêts composés compris.</p>
+
+  <div class="grid sim">
+    <form class="card fields" id="form">
+      <div class="field"><label for="target">Objectif (€)</label><input id="target" name="target" inputmode="decimal" value="50000" /></div>
+      <div class="field"><label for="initial">Déjà épargné (€)</label><input id="initial" name="initial" inputmode="decimal" value="2000" /></div>
+      <div class="field-row">
+        <div class="field"><label for="rate">Rendement annuel (%)</label><input id="rate" name="rate" inputmode="decimal" value="5" /></div>
+        <div class="field"><label for="years">Dans (ans)</label><input id="years" name="years" inputmode="numeric" value="10" /></div>
+      </div>
+    </form>
+
+    <section class="card" aria-live="polite">
+      <div class="stats">
+        <div class="stat highlight"><small>À verser chaque mois</small><b id="monthly">–</b></div>
+        <div class="stat"><small>Total versé</small><b id="contributed">–</b></div>
+        <div class="stat"><small>Apporté par les intérêts</small><b id="gains">–</b></div>
+      </div>
+      <p class="note" id="insight"></p>
+    </section>
+  </div>
+
+  <Promo />
+  <Faq items={faq} />
+</Layout>
+
+<script>
+  import { compound, monthlyNeeded } from "@/lib/calc/compound";
+  import { formatEur, formatEurCents, readNumber, setText } from "@/lib/ui";
+
+  const form = document.getElementById("form") as HTMLFormElement;
+  function update() {
+    const target = readNumber(form, "target", 0, 1e10);
+    const initial = readNumber(form, "initial", 0, 1e10);
+    const ratePct = readNumber(form, "rate", -20, 30);
+    const years = readNumber(form, "years", 1, 60);
+    const monthly = monthlyNeeded(target, initial, ratePct, years);
+    const r = compound({ initial, monthly, ratePct, years });
+    setText("monthly", formatEurCents(monthly));
+    setText("contributed", formatEur(r.contributed));
+    setText("gains", formatEur(Math.max(0, r.gains)));
+    const longer = monthlyNeeded(target, initial, ratePct, years + 5);
+    setText("insight", monthly === 0 ? "Ton épargne actuelle suffit déjà à atteindre l'objectif à ce rendement." : `Avec 5 ans de plus, il suffirait de ${formatEurCents(longer)} par mois.`);
+  }
+  form.addEventListener("input", update);
+  update();
+</script>

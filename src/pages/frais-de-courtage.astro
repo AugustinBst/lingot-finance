@@ -1,0 +1,72 @@
+---
+import Faq from "@/components/Faq.astro";
+import Promo from "@/components/Promo.astro";
+import Layout from "@/layouts/Layout.astro";
+
+const faq = [
+  { q: "Pourquoi le manque à gagner dépasse-t-il les frais payés ?", a: "Chaque euro de frais sort de ton placement et ne produit plus d'intérêts composés. Sur 20 ou 30 ans, ce rendement perdu pèse souvent plus lourd que les frais eux-mêmes." },
+  { q: "Quels frais renseigner ?", a: "Les frais par ordre (une part fixe en euros et/ou un pourcentage du montant) et les frais de garde annuels en pourcentage de l'encours. Tu les trouves dans la grille tarifaire de ton courtier ou de ta banque." },
+  { q: "Un ordre par mois, c'est réaliste ?", a: "C'est le cas d'un investissement programmé mensuel. Si tu passes moins d'ordres, regroupe tes versements : avec des frais fixes, quelques gros ordres coûtent moins cher que beaucoup de petits." },
+];
+---
+
+<Layout title="Le vrai coût des frais de courtage" current="frais-de-courtage" description="Calcule ce que te coûtent vraiment tes frais de courtage et de garde : frais payés et rendement perdu sur 10, 20 ou 30 ans." faq={faq}>
+  <h1>Le vrai coût des frais de courtage</h1>
+  <p class="lead">Quelques euros par ordre ou 0,5 % de frais de garde semblent indolores. Voici ce qu'ils représentent sur la durée, rendement perdu compris.</p>
+
+  <div class="grid sim">
+    <form class="card fields" id="form">
+      <div class="field-row">
+        <div class="field"><label for="initial">Capital de départ (€)</label><input id="initial" name="initial" inputmode="decimal" value="1000" /></div>
+        <div class="field"><label for="monthly">Versement mensuel (€)</label><input id="monthly" name="monthly" inputmode="decimal" value="100" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="rate">Rendement annuel (%)</label><input id="rate" name="rate" inputmode="decimal" value="7" /></div>
+        <div class="field"><label for="years">Durée (ans)</label><input id="years" name="years" inputmode="numeric" value="20" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="orderFixed">Frais fixes par ordre (€)</label><input id="orderFixed" name="orderFixed" inputmode="decimal" value="1.99" /></div>
+        <div class="field"><label for="orderPct">Frais par ordre (%)</label><input id="orderPct" name="orderPct" inputmode="decimal" value="0" /></div>
+      </div>
+      <div class="field"><label for="custody">Frais de garde (%/an)</label><input id="custody" name="custody" inputmode="decimal" value="0" /></div>
+    </form>
+
+    <section class="card" aria-live="polite">
+      <div class="stats">
+        <div class="stat"><small>Sans frais</small><b id="clean">–</b></div>
+        <div class="stat"><small>Avec tes frais</small><b id="net">–</b></div>
+        <div class="stat"><small>Frais payés</small><b id="paid">–</b></div>
+        <div class="stat highlight"><small>Manque à gagner total</small><b id="lost">–</b></div>
+      </div>
+      <p class="note" id="insight"></p>
+    </section>
+  </div>
+
+  <Promo />
+  <Faq items={faq} />
+</Layout>
+
+<script>
+  import { brokerFees } from "@/lib/calc/fees";
+  import { formatEur, formatPct, readNumber, setText } from "@/lib/ui";
+
+  const form = document.getElementById("form") as HTMLFormElement;
+  function update() {
+    const r = brokerFees({
+      initial: readNumber(form, "initial", 0, 1e9),
+      monthly: readNumber(form, "monthly", 0, 1e7),
+      ratePct: readNumber(form, "rate", -20, 30),
+      years: readNumber(form, "years", 1, 60),
+      orderFixed: readNumber(form, "orderFixed", 0, 1000),
+      orderPct: readNumber(form, "orderPct", 0, 10),
+      custodyPct: readNumber(form, "custody", 0, 10),
+    });
+    setText("clean", formatEur(r.withoutFees));
+    setText("net", formatEur(r.withFees));
+    setText("paid", formatEur(r.feesPaid));
+    setText("lost", formatEur(r.lost));
+    setText("insight", `Tes frais t'enlèvent ${formatPct(r.lostPct)} du capital final.`);
+  }
+  form.addEventListener("input", update);
+  update();
+</script>

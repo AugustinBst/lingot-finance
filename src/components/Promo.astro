@@ -1,0 +1,27 @@
+---
+import { SITE } from "@/config/site";
+// Encarts de revenus : rien ne s'affiche tant que les liens ne sont pas renseignés dans src/config/site.ts.
+---
+
+{
+  SITE.referralUrl && (
+    <aside class="card promo" aria-label="Lien de parrainage">
+      <p>
+        <b>Passer à l'action ?</b> Trading 212 permet d'investir en actions et ETF dès 1 €, en PEA ou en compte-titres, sans frais de courtage.
+        <small>Lien de parrainage : si tu ouvres un compte avec, nous recevons tous les deux une action offerte, selon les conditions de Trading 212.</small>
+      </p>
+      <a class="btn" href={SITE.referralUrl} rel="sponsored noopener" target="_blank">Ouvrir un compte</a>
+    </aside>
+  )
+}
+{
+  SITE.donationUrl && (
+    <aside class="card promo" aria-label="Soutenir le site">
+      <p>
+        <b>Ce simulateur t'a été utile ?</b> Le site est gratuit, sans publicité ni traceur.
+        <small>Un petit don aide à le garder à jour avec la fiscalité.</small>
+      </p>
+      <a class="btn" href={SITE.donationUrl} rel="noopener" target="_blank">Offrir un café</a>
+    </aside>
+  )
+}

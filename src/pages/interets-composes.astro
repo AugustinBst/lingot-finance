@@ -1,0 +1,67 @@
+---
+import Faq from "@/components/Faq.astro";
+import Promo from "@/components/Promo.astro";
+import Layout from "@/layouts/Layout.astro";
+
+const faq = [
+  { q: "Qu'est-ce que les intérêts composés ?", a: "Ce sont des intérêts qui produisent à leur tour des intérêts. Chaque année, le rendement s'applique au capital et aux gains déjà accumulés : la croissance accélère avec le temps, d'où l'intérêt de commencer tôt." },
+  { q: "Quel rendement annuel retenir ?", a: "Les actions mondiales ont historiquement rapporté de l'ordre de 6 à 8 % par an sur longue période, avec de fortes variations d'une année à l'autre. Un fonds en euros rapporte plutôt 2 à 3 %. Teste plusieurs scénarios plutôt qu'un seul." },
+  { q: "Les impôts sont-ils pris en compte ?", a: "Non, ce simulateur montre la valeur brute. Pour le montant après impôts selon l'enveloppe (PEA, assurance-vie, compte-titres), utilise le comparateur d'enveloppes." },
+  { q: "Pourquoi indiquer des frais annuels ?", a: "Frais de gestion d'un contrat ou d'un fonds : ils sont prélevés chaque année sur l'encours et réduisent l'effet des intérêts composés. Même 0,5 % fait une différence visible sur 20 ans." },
+];
+---
+
+<Layout title="Simulateur d'intérêts composés" current="interets-composes" description="Calcule ce que deviendra ton épargne avec des versements mensuels et les intérêts composés : capital final, gains et courbe année par année." faq={faq}>
+  <h1>Simulateur d'intérêts composés</h1>
+  <p class="lead">Combien vaudra ton épargne dans 10, 20 ou 30 ans ? Renseigne ton capital de départ, ton versement mensuel et un rendement espéré.</p>
+
+  <div class="grid sim">
+    <form class="card fields" id="form">
+      <div class="field"><label for="initial">Capital de départ (€)</label><input id="initial" name="initial" inputmode="decimal" value="1000" /></div>
+      <div class="field"><label for="monthly">Versement mensuel (€)</label><input id="monthly" name="monthly" inputmode="decimal" value="150" /></div>
+      <div class="field-row">
+        <div class="field"><label for="rate">Rendement annuel (%)</label><input id="rate" name="rate" inputmode="decimal" value="6" /></div>
+        <div class="field"><label for="years">Durée (ans)</label><input id="years" name="years" inputmode="numeric" value="20" /></div>
+      </div>
+      <div class="field"><label for="fees">Frais annuels (%)</label><input id="fees" name="fees" inputmode="decimal" value="0.2" /></div>
+    </form>
+
+    <section class="card" aria-live="polite">
+      <div class="stats">
+        <div class="stat highlight"><small>Capital final</small><b id="final">–</b></div>
+        <div class="stat"><small>Total versé</small><b id="contributed">–</b></div>
+        <div class="stat"><small>Gains</small><b id="gains">–</b></div>
+      </div>
+      <div id="chart"></div>
+      <p class="legend"><span><i style="background: oklch(1 0 0 / 25%)"></i>Versements</span><span><i style="background: var(--gold)"></i>Gains</span></p>
+      <p class="note" id="insight"></p>
+    </section>
+  </div>
+
+  <Promo />
+  <Faq items={faq} />
+</Layout>
+
+<script>
+  import { compound } from "@/lib/calc/compound";
+  import { areaChart, formatEur, readNumber, setText } from "@/lib/ui";
+
+  const form = document.getElementById("form") as HTMLFormElement;
+  function update() {
+    const r = compound({
+      initial: readNumber(form, "initial", 0, 1e9),
+      monthly: readNumber(form, "monthly", 0, 1e7),
+      ratePct: readNumber(form, "rate", -20, 30),
+      years: readNumber(form, "years", 1, 60),
+      annualFeesPct: readNumber(form, "fees", 0, 10),
+    });
+    setText("final", formatEur(r.final));
+    setText("contributed", formatEur(r.contributed));
+    setText("gains", formatEur(r.gains));
+    const share = r.final > 0 ? Math.round((r.gains / r.final) * 100) : 0;
+    setText("insight", `Les gains représentent ${share} % du capital final : c'est l'effet des intérêts composés.`);
+    document.getElementById("chart")!.innerHTML = areaChart(r.series.map((p) => ({ x: p.year, base: p.contributed, total: p.value })), "Évolution du capital, versements et gains");
+  }
+  form.addEventListener("input", update);
+  update();
+</script>

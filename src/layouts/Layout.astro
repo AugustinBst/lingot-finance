@@ -1,0 +1,62 @@
+---
+import "@/styles/global.css";
+import { SITE } from "@/config/site";
+import { TOOLS } from "@/config/tools";
+
+type Props = { title: string; description: string; current?: string; faq?: { q: string; a: string }[] };
+const { title, description, current, faq = [] } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const fullTitle = current ? `${title} · ${SITE.name}` : title;
+// Données structurées FAQ : Google peut afficher les questions directement dans les résultats.
+const faqJson = faq.length
+  ? JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) })
+  : null;
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <link rel="apple-touch-icon" href={`${base}apple-touch-icon.png`} />
+    <link rel="sitemap" href={`${base}sitemap-index.xml`} />
+    <meta name="theme-color" content="#1c1712" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL(`${base}lingot-256.png`, Astro.site)} />
+    <meta property="og:locale" content="fr_FR" />
+    {faqJson && <script type="application/ld+json" set:html={faqJson} />}
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href={base}><img src={`${base}lingot-256.png`} alt="" width="40" height="40" /><span>LINGOT FINANCE</span></a>
+        <nav class="nav" aria-label="Simulateurs">
+          {TOOLS.map((t) => <a href={`${base}${t.slug}/`} aria-current={current === t.slug ? "page" : undefined}>{t.short}</a>)}
+        </nav>
+      </header>
+      <main>
+        <slot />
+      </main>
+      <footer class="site-footer">
+        <nav aria-label="Pied de page">
+          <a href={base}>Accueil</a>
+          {TOOLS.map((t) => <a href={`${base}${t.slug}/`}>{t.short}</a>)}
+          <a href={`${base}mentions-legales/`}>Mentions légales</a>
+          {SITE.donationUrl && <a href={SITE.donationUrl} rel="noopener" target="_blank">Soutenir le site</a>}
+        </nav>
+        <p>
+          Simulations indicatives, à but pédagogique : elles ne constituent pas un conseil en investissement personnalisé.
+          Les performances passées ne préjugent pas des performances futures et tout investissement en actions comporte un risque de perte en capital.
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

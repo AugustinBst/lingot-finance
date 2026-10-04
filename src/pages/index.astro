@@ -1,0 +1,38 @@
+---
+import Promo from "@/components/Promo.astro";
+import { FISCALITE } from "@/config/fiscalite";
+import { SITE } from "@/config/site";
+import { TOOLS } from "@/config/tools";
+import Layout from "@/layouts/Layout.astro";
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout title={`${SITE.name} : simulateurs d'épargne et d'investissement gratuits`} description="Simulateurs gratuits pour faire grossir ton épargne : intérêts composés, PEA vs assurance-vie vs compte-titres, frais de courtage, objectif d'épargne. Fiscalité 2026 à jour.">
+  <section>
+    <h1>Fais travailler ton argent, chiffres à l'appui.</h1>
+    <p class="lead">
+      Des simulateurs clairs pour décider où placer ton épargne et combien elle peut rapporter. Gratuits, sans inscription,
+      sans traceur, et à jour de la fiscalité 2026 (vérifiée le {FISCALITE.verifiedOn}).
+    </p>
+  </section>
+  <section class="grid grid-2" aria-label="Simulateurs">
+    {
+      TOOLS.map((t) => (
+        <a class="card tool-card" href={`${base}${t.slug}/`}>
+          <strong>{t.title}</strong>
+          <p>{t.description}</p>
+        </a>
+      ))
+    }
+  </section>
+  <section>
+    <h2>Les trois règles qui font la différence</h2>
+    <div class="grid grid-3">
+      <div class="card"><b>Commencer tôt</b><p class="note">Avec les intérêts composés, les gains produisent eux-mêmes des gains : dix ans de plus pèsent souvent plus que doubler les versements.</p></div>
+      <div class="card"><b>Choisir la bonne enveloppe</b><p class="note">Sur un placement long, le PEA et l'assurance-vie laissent nettement plus d'argent en poche que le compte-titres et sa flat tax de 31,4 %.</p></div>
+      <div class="card"><b>Chasser les frais</b><p class="note">1 % de frais par an paraît peu : sur 25 ans, il peut emporter près d'un quart de tes gains.</p></div>
+    </div>
+  </section>
+  <Promo />
+</Layout>

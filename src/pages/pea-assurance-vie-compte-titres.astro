@@ -1,0 +1,77 @@
+---
+import Faq from "@/components/Faq.astro";
+import Promo from "@/components/Promo.astro";
+import { FISCALITE, pfuTotalPct, rate } from "@/config/fiscalite";
+import Layout from "@/layouts/Layout.astro";
+
+const faq = [
+  { q: "Quelle est la fiscalité du PEA en 2026 ?", a: `Après ${FISCALITE.peaExemptAfterYears} ans, les gains sont exonérés d'impôt sur le revenu mais soumis aux prélèvements sociaux, passés à ${rate(FISCALITE.socialChargesPct)} au 1er janvier 2026. Avant ${FISCALITE.peaExemptAfterYears} ans, un retrait est taxé à la flat tax de ${rate(pfuTotalPct())} et clôture le plan. Les versements sont plafonnés à ${FISCALITE.peaDepositCap.toLocaleString("fr-FR")} €.` },
+  { q: "Et celle de l'assurance-vie ?", a: `Les prélèvements sociaux de l'assurance-vie restent à ${rate(FISCALITE.lifeInsuranceSocialChargesPct)} en 2026. Après ${FISCALITE.lifeInsuranceLongTermAfterYears} ans, les gains profitent d'un abattement annuel de ${FISCALITE.lifeInsuranceAllowanceSingle.toLocaleString("fr-FR")} € (${FISCALITE.lifeInsuranceAllowanceCouple.toLocaleString("fr-FR")} € pour un couple), puis sont imposés à ${rate(FISCALITE.lifeInsuranceLongTermIncomeTaxPct)} jusqu'à 150 000 € de versements.` },
+  { q: "Pourquoi le compte-titres est-il souvent dernier ?", a: `Ses gains sont taxés à la flat tax de ${rate(pfuTotalPct())} (${rate(FISCALITE.pfuIncomeTaxPct)} d'impôt et ${rate(FISCALITE.socialChargesPct)} de prélèvements sociaux). Son atout : aucun plafond et accès à toutes les actions du monde.` },
+  { q: "Quelles hypothèses fait le comparateur ?", a: "Un retrait total à la fin de la durée, des fonds capitalisants (pas d'impôt avant le retrait), des versements en assurance-vie sous 150 000 € et le même rendement brut dans les trois enveloppes. La réalité dépend de tes supports et de ta situation : c'est un ordre de grandeur, pas un conseil." },
+];
+---
+
+<Layout title="PEA, assurance-vie ou compte-titres : comparateur après impôts (2026)" current="pea-assurance-vie-compte-titres" description={`Compare ce qu'il te reste après impôts en PEA, assurance-vie et compte-titres. Fiscalité 2026 : flat tax ${rate(pfuTotalPct())}, PEA ${rate(FISCALITE.socialChargesPct)} après 5 ans.`} faq={faq}>
+  <h1>PEA, assurance-vie ou compte-titres ?</h1>
+  <p class="lead">Même placement, mêmes versements : selon l'enveloppe, ce qui te reste après impôts peut changer de plusieurs milliers d'euros. Fiscalité 2026, vérifiée le {FISCALITE.verifiedOn}.</p>
+
+  <div class="grid sim">
+    <form class="card fields" id="form">
+      <div class="field"><label for="initial">Capital de départ (€)</label><input id="initial" name="initial" inputmode="decimal" value="5000" /></div>
+      <div class="field"><label for="monthly">Versement mensuel (€)</label><input id="monthly" name="monthly" inputmode="decimal" value="200" /></div>
+      <div class="field-row">
+        <div class="field"><label for="rate">Rendement annuel (%)</label><input id="rate" name="rate" inputmode="decimal" value="6" /></div>
+        <div class="field"><label for="years">Durée (ans)</label><input id="years" name="years" inputmode="numeric" value="15" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="avFees">Frais assurance-vie (%/an)</label><input id="avFees" name="avFees" inputmode="decimal" value="0.6" /></div>
+        <div class="field"><label for="brokerFees">Frais PEA / CTO (%/an)</label><input id="brokerFees" name="brokerFees" inputmode="decimal" value="0" /></div>
+      </div>
+      <label class="check"><input type="checkbox" name="couple" id="couple" /> Couple marié ou pacsé (abattement doublé)</label>
+    </form>
+
+    <section class="card" aria-live="polite">
+      <div class="envelopes" id="results"></div>
+      <p class="note" id="insight"></p>
+    </section>
+  </div>
+
+  <Promo />
+  <Faq items={faq} />
+</Layout>
+
+<script>
+  import { compareEnvelopes } from "@/lib/calc/envelopes";
+  import { formatEur, readNumber, setText } from "@/lib/ui";
+
+  const form = document.getElementById("form") as HTMLFormElement;
+  const results = document.getElementById("results")!;
+  const escape = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+
+  function update() {
+    const list = compareEnvelopes({
+      initial: readNumber(form, "initial", 0, 1e9),
+      monthly: readNumber(form, "monthly", 0, 1e7),
+      ratePct: readNumber(form, "rate", -20, 30),
+      years: readNumber(form, "years", 1, 60),
+      lifeInsuranceFeesPct: readNumber(form, "avFees", 0, 5),
+      brokerFeesPct: readNumber(form, "brokerFees", 0, 5),
+      couple: (form.elements.namedItem("couple") as HTMLInputElement).checked,
+    }).sort((a, b) => b.net - a.net);
+    const best = list[0];
+    results.innerHTML = list
+      .map(
+        (e) => `<article class="envelope${e === best ? " best" : ""}">
+          <header><b>${escape(e.label)}${e === best ? " · le plus avantageux" : ""}</b><b>${formatEur(e.net)}</b></header>
+          <p class="note">Brut ${formatEur(e.final)} · impôts ${formatEur(e.tax)} · versé ${formatEur(e.contributed)}</p>
+          <ul>${e.notes.map((n) => `<li>${escape(n)}</li>`).join("")}</ul>
+        </article>`,
+      )
+      .join("");
+    const worst = list.at(-1)!;
+    setText("insight", `Écart entre la meilleure et la moins bonne enveloppe : ${formatEur(best.net - worst.net)} net en poche.`);
+  }
+  form.addEventListener("input", update);
+  update();
+</script>
